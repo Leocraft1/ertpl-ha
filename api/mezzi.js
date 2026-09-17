@@ -32,7 +32,7 @@ const corsHeaders = {
 const servers = [
     {
       name: "Serverissimo",
-      url: "https://dbiface.serverissimo.com/health",
+      url: "https://mezziapi.serverissimo.com/health",
       apiEndpoint: "/api"
     },
     {
