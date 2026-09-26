@@ -1,7 +1,7 @@
 export const config = { runtime: "edge" };
 
-const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
-const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+import { kvGet, kvSet, kvSetNX, kvDel } from "../lib/kv.js";
+
 const ARBITER_SECRET = process.env.ARBITER_SECRET;
 
 const servers = [
@@ -11,26 +11,6 @@ const servers = [
 ];
 
 const FAILURE_THRESHOLD = 3; // check falliti consecutivi prima di dichiarare un nodo offline (isteresi)
-
-async function kvGet(key) {
-    const res = await fetch(`${UPSTASH_URL}/get/${key}`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
-    const data = await res.json();
-    return data.result ? JSON.parse(data.result) : null;
-}
-async function kvSet(key, value) {
-    await fetch(`${UPSTASH_URL}/set/${key}/${encodeURIComponent(JSON.stringify(value))}`, {
-        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }
-    });
-}
-async function kvSetNX(key, value, pxMillis) {
-    const res = await fetch(`${UPSTASH_URL}/set/${key}/${value}?NX=true&PX=${pxMillis}`, {
-        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }
-    });
-    return (await res.json()).result === "OK";
-}
-async function kvDel(key) {
-    await fetch(`${UPSTASH_URL}/del/${key}`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
-}
 
 async function fetchHealth(server, timeoutMs = 1500) {
     try {

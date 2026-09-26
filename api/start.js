@@ -21,6 +21,8 @@ export const config = {
 	runtime: "edge"
 };
 
+import { kvGet } from "../lib/kv.js";
+
 const corsHeaders = {
 	//"Access-Control-Allow-Origin": "https://ertpl.pages.dev",
 	"Access-Control-Allow-Origin": "*",
