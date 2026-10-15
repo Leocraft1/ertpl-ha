@@ -3,13 +3,20 @@
   "name": "ertpl-ha",
   "main": "src/index.js",
   "compatibility_date": "2026-01-01",
-
   "durable_objects": {
     "bindings": [
-      { "name": "ARBITER", "class_name": "Arbiter" }
+      {
+        "name": "ARBITER",
+        "class_name": "Arbiter"
+      }
     ]
   },
   "migrations": [
-    { "tag": "v1", "new_sqlite_classes": ["Arbiter"] }
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "Arbiter"
+      ]
+    }
   ]
 }
