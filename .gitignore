@@ -1,2 +1,3 @@
 .wrangler/
 secrets.txt
+.dev.vars
