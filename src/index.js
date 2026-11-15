@@ -120,14 +120,18 @@ async function inspectApis(names) {
     const apis = Object.fromEntries(names.map(name => {
         const nodes = results.filter((_, index) => jobs[index].name === name);
         const chosen = nodes.find(node => node.available);
+        const allNodesHealthy = nodes.every(node => node.available);
+
         return [name, {
-            status: chosen ? "ok" : "offline",
+            status: !chosen ? "offline" : allNodesHealthy ? "ok" : "degraded",
             server: chosen?.server ?? null,
             nodes
         }];
     }));
-    const available = Object.values(apis).filter(api => api.status === "ok").length;
+
+    const available = Object.values(apis).filter(api => api.status !== "offline").length;
     const allHealthy = results.every(node => node.available);
+
     return {
         status: available === 0 ? "offline" : allHealthy ? "ok" : "degraded",
         checkedAt: new Date().toISOString(),
