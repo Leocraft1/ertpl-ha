@@ -96,7 +96,7 @@ async function pickByPriority(api) {
     // state, remembered master, or failure threshold can delay failback.
     for (const [index, node] of api.nodes.entries()) {
         const health = await probeNode(api, node, index + 1);
-        if (health.available) return node.server;
+        if (health.available) return [node.server, node.name];
     }
     return null;
 }
@@ -159,8 +159,10 @@ async function handleRequest(request) {
         // offline; its status and individual API statuses describe availability.
         response = json(await inspectApis(statusApi ? [statusApi] : Object.keys(APIS)));
     } else {
-        const server = await pickByPriority(APIS[apiName]);
-        response = json(server ? { status: "ok", server } : { status: "offline" }, server ? 200 : 503);
+        const serverarr = await pickByPriority(APIS[apiName]);
+        var server = serverarr[1];
+        var url = serverarr[0];
+        response = json(serverarr ? { status: "ok", server, url } : { status: "offline" }, serverarr ? 200 : 503);
     }
     return response;
 }
