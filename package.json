@@ -1,10 +1,11 @@
 {
   "name": "ertpl-ha",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Router HA con priorità statiche indipendenti per Cloudflare Workers",
+  "type": "module",
+  "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test"
   },
   "repository": {
     "type": "git",
