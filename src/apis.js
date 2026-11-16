@@ -30,7 +30,7 @@ export const APIS = {
         nodes: [
             node("Serverissimo", "https://mezziapi.serverissimo.com"),
             node("DaniLab", "https://ertpl-db.daninet.freeddns.org"),
-            node("Vichingo455", "https://api.vichingo455.com/ertpl")
+            node("Vichingo455", "https://api.vichingo455.com/mezziapi")
         ]
     },
     cdn: {
