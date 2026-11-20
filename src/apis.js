@@ -17,6 +17,9 @@ export const APIS = {
             const replication = health?.replication;
             return health?.role === "replica" && replication?.caught_up === true && replication.io_running !== false && replication.sql_running !== false;
         },
+        // A successful health query proves the local DB can answer even when
+        // replication has stopped because the master is unreachable.
+        isDegraded: health => !health?.resync_in_progress && ["broken", "replica", "resyncing"].includes(health?.role),
         nodes: [
             node("Serverissimo", "https://startapi.serverissimo.com"),
             node("DaniLab", "https://startapi.daninet.freeddns.org"),

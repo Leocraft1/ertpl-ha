@@ -49,6 +49,7 @@ export async function probeNode(api, node, priority) {
         healthUrl: node.healthUrl,
         reachable: false,
         available: false,
+        status: "offline",
         httpStatus: null,
         details: null,
         error: null
@@ -81,6 +82,7 @@ export async function probeNode(api, node, priority) {
             result.error = `http_${response.status}`;
         } else if (!result.error) {
             result.available = api.isHealthy(result.details);
+            if (result.available) result.status = "ok";
             if (!result.available) result.error = "unhealthy_response";
         }
     } catch (error) {
@@ -91,14 +93,40 @@ export async function probeNode(api, node, priority) {
     return result;
 }
 
+function canUseDegraded(api, node) {
+    // Do not treat transport failures, HTTP errors or malformed health bodies
+    // as a readable database. Only a valid but unhealthy health response counts.
+    return node.error === "unhealthy_response" && !!api.isDegraded?.(node.details);
+}
+
+function selectNode(api, nodes) {
+    if (api.isDegraded && !nodes.some(node => node.available && node.details?.role === "master")) {
+        for (const node of nodes) {
+            if (canUseDegraded(api, node)) {
+                node.available = true;
+                node.status = "degraded";
+            }
+        }
+    }
+    return nodes.find(node => node.available) ?? null;
+}
+
 async function pickByPriority(api) {
     // Start again at priority 1 on every request, including START. No shared
     // state, remembered master, or failure threshold can delay failback.
+    const nodes = [];
+    let hasDegradedCandidate = false;
     for (const [index, node] of api.nodes.entries()) {
         const health = await probeNode(api, node, index + 1);
-        if (health.available) return [node.server, node.name];
+        nodes.push(health);
+        hasDegradedCandidate ||= canUseDegraded(api, health);
+        if (health.available && (!hasDegradedCandidate || health.details?.role === "master")) {
+            return selectNode(api, nodes);
+        }
     }
-    return null;
+    // Earlier START nodes may be usable with interrupted replication. Check
+    // the remaining nodes for a master before allowing this degraded fallback.
+    return selectNode(api, nodes);
 }
 
 async function inspectApis(names) {
@@ -119,8 +147,8 @@ async function inspectApis(names) {
 
     const apis = Object.fromEntries(names.map(name => {
         const nodes = results.filter((_, index) => jobs[index].name === name);
-        const chosen = nodes.find(node => node.available);
-        const allNodesHealthy = nodes.every(node => node.available);
+        const chosen = selectNode(APIS[name], nodes);
+        const allNodesHealthy = nodes.every(node => node.status === "ok");
 
         return [name, {
             status: !chosen ? "offline" : allNodesHealthy ? "ok" : "degraded",
@@ -130,7 +158,7 @@ async function inspectApis(names) {
     }));
 
     const available = Object.values(apis).filter(api => api.status !== "offline").length;
-    const allHealthy = results.every(node => node.available);
+    const allHealthy = results.every(node => node.status === "ok");
 
     return {
         status: available === 0 ? "offline" : allHealthy ? "ok" : "degraded",
@@ -163,10 +191,8 @@ async function handleRequest(request) {
         // offline; its status and individual API statuses describe availability.
         response = json(await inspectApis(statusApi ? [statusApi] : Object.keys(APIS)));
     } else {
-        const serverarr = await pickByPriority(APIS[apiName]);
-        var server = serverarr[1];
-        var url = serverarr[0];
-        response = json(serverarr ? { status: "ok", server, url } : { status: "offline" }, serverarr ? 200 : 503);
+        const chosen = await pickByPriority(APIS[apiName]);
+        response = json(chosen ? { status: "ok", server: chosen.name, url: chosen.server } : { status: "offline" }, chosen ? 200 : 503);
     }
     return response;
 }
